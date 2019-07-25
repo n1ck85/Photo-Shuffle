@@ -1,0 +1,226 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<link rel="stylesheet" type="text/css" href="style.css" />
+<link rel="stylesheet" type="text/css" href="includes/jquery-ui-1.10.4.custom/css/custom-theme/jquery-ui-1.10.4.custom.min.css"/>
+<title>Photo Shuffle</title>
+</head>
+<body> 
+    <div class="wrapper">
+        <div class="mainMenu">
+            <ul>
+                <li class="menuTitle button"></li>
+                <li id="home" class="button">Home</li>                
+                <li id="regularPuzzle" class="button">Regular</li>
+                <li id="solve" class="button">Solve</li>
+                <li id="restart" class="button">Restart</li>
+                <li id="records" class="button">Records</li> 
+                <li id="share" class="button">Share</li>
+            </ul>
+        </div>
+<div class="puzzleTitle" style="background-image: url('includes/icons/sliderTitle.png');">
+    <span id="difficulty"></span>                
+    <div id="timer">
+        <span id="minutes">0</span>                     
+            <span>min</span>
+        <span id="seconds">00</span>
+            <span>sec</span>
+    </div>
+</div>
+        <div id="panel">
+                <div id="progress">
+                    <div id="progressBar"></div>
+                </div>
+            <div id="sliderContainer">
+                <div id="slider"></div>
+            </div>
+        </div>
+        <div class="puzzleContainer">
+            <div id="showTheImg"></div>
+            <div class="imgContainer">
+                <img id="currentImg" src="" />        
+            </div>
+        </div>       
+        <div class="shuffleContainer">
+            <div id="shuffle"></div>
+        </div>      
+    <div class="inGameButtons"><div id="showPic"></div></div>
+    <div id="mainMenuButton" class="button"></div>
+    </div>
+</body>
+<script type="text/javascript" charset="utf-8" src="cordova.js"></script>
+<script type="text/javascript" charset="utf-8" src="includes/jquery-ui-1.10.4.custom/js/jquery-1.10.2.js"></script>
+<script type="text/javascript" charset="utf-8" src="config.js"></script>
+<script type="text/javascript" charset="utf-8" src="dynamicCss.js"></script>
+<script type="text/javascript" charset="utf-8" src="script.js"></script>
+<script type="text/javascript" charset="utf-8" src="includes/jquery-ui-1.10.4.custom/js/jquery-ui-1.10.4.custom.min.js"></script>
+<script type="text/javascript" charset="utf-8" src="includes/touchPunch.js"></script>
+<script type="text/javascript" charset="utf-8" src="includes/imageSplit.js"></script>
+<script type="text/javascript" charset="utf-8" src="includes/iscroll/build/iscroll-lite.js"></script>
+<script type="text/javascript">
+    window.startPos = window.endPos = {};
+    bounds = [];
+function makeDraggable(el) {
+        $(el).draggable({
+            cancel: '.badDrag',
+            containment: bounds,
+            revert: 'invalid',
+            revertDuration: 0,
+            distance: 10, 
+            start: function() { 
+              window.startPos = $(this).offset();
+            }
+        });
+};
+function makeDroppable(){
+    $('#tile0').parent().droppable({
+        accept: '.goodDrag',
+        drop: function(event, ui) { 
+          var $from = $(ui.draggable),
+              $fromParent = $from.parent(),
+              $to = $(this).children(),
+              $toParent = $(this);
+
+        window.endPos = $to.offset();
+          //swap($from, $from.offset(), window.endPos, 0);
+          swap($to, window.endPos, window.startPos, 0, function() {
+                        $toParent.html($from.css({position: 'relative', left: '', top: '', 'z-index': ''}));
+                        $fromParent.html($to.css({position: 'relative', left: '', top: '', 'z-index': ''}));
+                        }); 
+                makeDraggable($from.on('touchstart', function(){ NESW(this); }).addClass('badDrag').removeClass('goodDrag'));
+                progress();               
+                }                
+    });
+};
+function swap($el, fromPos, toPos, duration, callback) { 
+    $el.css({ 
+      'position':'absolute'
+    }).css(fromPos,toPos);
+        if (callback) callback();
+};
+function NESW(el){ //console.log($('.tile').hasClass('paused')+'   hasClassPaused');
+    if( ! $('.tile').hasClass('paused') ){ 
+        if( $(el).attr('id') !== '#tile0' ){
+    //        bounds = [];
+        var blanc = new offset($('#tile0')),
+                bT = blanc.top(), 
+                bL = blanc.left(), 
+                tile = new offset(el), 
+                tT = tile.top(), 
+                tL = tile.left(), 
+                width = $(el).width() + _defaults.gap,
+                e = bL - tL, 
+                w = tL - bL,
+                n = tT - bT, 
+                s = bT - tT;
+            if( bL > tL && tT === bT && e < width +.5){ 
+                $(el).addClass('goodDrag').removeClass('badDrag');            
+                bounds = [tL,tT,bL,bT];
+    //            console.log('blanc is EAST!');
+                makeDroppable();
+                makeDraggable(el);
+    //            $('#x1').css({'top':tT,'left':tL});
+    //            $('#x2').css({'top':bT,'left':bL+width});
+    //            $('#y1').css({'top':bT+width,'left':tL});
+    //            $('#y2').css({'top':tT+width,'left':bL+width});        
+            }
+            else if( bL < tL && tT === bT && w < width +.5){   
+                $(el).addClass('goodDrag').removeClass('badDrag');            
+                bounds = [bL,bT,tL,tT];
+    //            console.log('blanc is WEST!');
+                makeDroppable();            
+                makeDraggable(el);
+    //            $('#x1').css({'top':bT,'left':bL});
+    //            $('#x2').css({'top':tT,'left':tL+width});
+    //            $('#y1').css({'top':bT+width,'left':bL});
+    //            $('#y2').css({'top':tT+width,'left':tL+width});
+            }
+            else if( bT > tT && tL === bL && s < width +.5){ 
+                $(el).addClass('goodDrag').removeClass('badDrag');            
+                bounds = [tL,tT,bL,bT];
+    //            console.log('blanc is SOUTH!');
+                makeDroppable();
+                makeDraggable(el);  
+    //            $('#x1').css({'top':tT,'left':tL});
+    //            $('#x2').css({'top':tT,'left':tL+width});
+    //            $('#y1').css({'top':bT+width,'left':bL});
+    //            $('#y2').css({'top':bT+width,'left':bL+width});
+            }
+            else if( bT < tT && tL === bL && n < width +.5){ 
+                $(el).addClass('goodDrag').removeClass('badDrag');            
+                bounds = [bL,bT,tL,tT];
+//                console.log('blanc is NORTH!');
+                makeDroppable();
+                makeDraggable(el);  
+    //            $('#x1').css({'top':bT,'left':bL});
+    //            $('#x2').css({'top':bT,'left':bL+width});
+    //            $('#y1').css({'top':tT+width,'left':tL});
+    //            $('#y2').css({'top':tT+width,'left':tL+width});
+            }
+            else{ $(el).addClass('badDrag'); }//console.log('Bad Drag on '+ el.id); };
+        }
+    } 
+};
+//Seperate class to work out the offset of the required element as it is called twice for blank and draggable 
+function offset(el){
+    var tile = $(el).offset(); 
+        this.t = tile.top; 
+        this.l = tile.left;  
+        this.top = function(){ return this.t; };
+        this.left = function(){ return this.l; };
+}
+
+$('#shuffle').on('touchstart',function(){
+    var tileContent = [], rdm = [];// img = $('.puzzleContainer').find('img');
+        //$('.imgContainer').html(img).splitInTiles();//needed if re-shuffle after puzzle is solved without refresh        
+        $('.parent').each(function(i){   
+            $(this).children().css({ opacity: 1 });
+            if( i > 0 ){ 
+                var content = $(this).html();
+                    tileContent.push(content);
+                    rdm.push(--i); 
+                    rdm.sort(function(){ return Math.random() - 0.5; });
+            };
+        });        
+        $('.parent').each(function(n){ 
+            if( n > 0 ){
+                $('#parent'+n).html( tileContent[rdm[--n]] );
+            };
+        });
+//fade out the first tile  
+    $('#tile0').css('opacity', '0');    
+//initialize the droppables
+    makeDroppable();
+//initialize draggables
+//Has to be initialized this way because the NESW function needs 
+//to be called prior to being made a draggable. 
+    $('.tile').on('touchstart', function(){     
+            NESW(this); 
+    }).draggable({cancel: '.badDrag'}).addClass('badDrag');  
+//Swap the slider for the progress bar
+    $('#sliderContainer').hide();
+    $('#progress' ).show();
+//Make the shuffle into a pause button
+$(this).off().
+        css('background','url(includes/icons/pause.png) no-repeat center').
+        on('touchstart', function(){ pause(); });   
+//fade-in and start timer 
+    $('#difficulty').fadeOut(500).queue(function(){
+        $('#timer').fadeIn(700);
+    });
+//fade-in the help button
+    $('#showTheImg').css('background-image','url('+puzzle.currentImg.src+')');
+    $('#showPic').fadeIn(700).on('touchstart', function(){
+        $('#showTheImg').show();
+    });
+    $('#showPic').on('touchend', function(){
+        $('#showTheImg').hide();
+    }); 
+    timer();
+    puzzle.currentImg.playing = true;
+    puzzle.currentImg.type = 'slider';    
+}); //shuffle button funtion end
+</script>  
+</html>

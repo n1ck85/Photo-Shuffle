@@ -1,0 +1,148 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<link rel="stylesheet" type="text/css" href="style.css" />
+<title>Photo Shuffle</title>
+</head>
+<body>
+    <div class="wrapper">
+        <div id="indexBG"></div><!-- Background image/logo -->
+        <div class="mainMenu">
+            <ul>
+                <li class="menuTitle"></li>
+                <li id="records" class="button">Records</li> 
+                <li id="remove" class="button">Remove Image</li>
+                <li id="reset" class="button">Reset App</li>
+                <li id="share" class="button">Share</li>
+                <li id="about" class="button">About</li>                
+            </ul>
+        </div>    
+        <div class="indexButtonContainer">
+            <div class="mediaSelectionContainer">
+                <div id="choose" class="indexMediaSelection"></div>
+                <div id="take" class="indexMediaSelection"></div>
+            </div>
+            <div id="regularOption" class="indexPuzzleType puzzleOption" ></div>
+            <div id="sliderOption" class="indexPuzzleType puzzleOption"></div>
+            <div id="previewImg"></div>
+        </div>
+        <div id="mainMenuButton" class="button"></div>
+    </div>
+</body>
+<script type="text/javascript" src="cordova.js"></script>
+<script type="text/javascript" src="includes/jquery-ui-1.10.4.custom/js/jquery-1.10.2.js"></script>
+<script type="text/javascript" charset="utf-8" src="config.js"></script>
+<script type="text/javascript" charset="utf-8" src="dynamicCss.js"></script>
+<script type="text/javascript" charset="utf-8" src="script.js"></script>
+<script type="text/javascript" charset="utf-8" src="includes/iscroll/build/iscroll-lite.js"></script>
+<script type="text/javascript">
+function onSuccess(img){
+    console.log('img url = '+ img);
+    localStorage.setItem('photoShuffleImg',img);
+    window.location.reload();
+}
+function onFail(e){
+    message(e);
+}
+function getImg(){
+    var options = {
+        destinationType : Camera.DestinationType.FILE_URI,
+        sourceType      : Camera.PictureSourceType.PHOTOLIBRARY
+        };
+    navigator.camera.getPicture(onSuccess, onFail, options);  
+}
+function takeImg(){
+    var options = {
+        destinationType : Camera.DestinationType.FILE_URI,
+        sourceType      : Camera.PictureSourceType.CAMERA,
+        quality         : 75,
+        allowEdit       : true,
+        targetWidth     : 800,
+        targetHeight    : 800,
+        saveToPhotoAlbum: true
+        };
+    navigator.camera.getPicture(onSuccess, onFail, options);    
+}   
+function goTo(x){
+    var page;
+        x === 'regularOption' ? page = 'regular.html' : page = 'slider.html';
+        window.location.replace(page);
+}
+//Grab img url from localstorage. 
+    var existingImg = localStorage.getItem('photoShuffleImg'); 
+        if(existingImg){     
+        var img = new Image();        
+            img.onerror = function(){
+                if(existingImg){//if localStorage exists but the image is not loaded, remove 'photoShuffleImg' from localstorage so that the user can't enter into a game before re-loading an image
+                    localStorage.removeItem('photoShuffleImg'); 
+                    message('You previous image has been removed as it cannot be found.<br/>Please re-load an image to play.',true);
+                }
+                $('.puzzleOption').on('touchstart',function(){ 
+                    message('Please choose an image first...');
+                    });
+            };
+            img.onload = function(){ 
+                //if img exists load it in the div
+                $('#previewImg').css('background-image','url('+existingImg+')'); 
+                $('.puzzleOption').on('touchstart',function(){ 
+                    //now check if any records exist.      
+                    var savedRecords = JSON.parse(localStorage.getItem('photoShuffleRecords')); //de-stringify the local storae string back into an object
+                    if( savedRecords && savedRecords.pic ){ // if records exist retrieve it from  localstorage 
+                            var exists = 0;   console.log('saved records exist');
+                                $(savedRecords.pic).each(function(i){//check that the image is not already saved
+                                    if(savedRecords.pic[i] === existingImg){
+                                        exists++; 
+                                    }
+                                    console.log('objects parsed...exists='+exists);
+                                });
+                            if(exists < 1){// save image to image object and put back into localstorage 
+                                    savedRecords.pic.push(existingImg);
+                                    savedRecords.regular.level1.push([0,0]);
+                                    savedRecords.regular.level2.push([0,0]);
+                                    savedRecords.regular.level3.push([0,0]);
+                                    savedRecords.regular.level4.push([0,0]);  
+                                    savedRecords.regular.level5.push([0,0]);                                      
+                                    savedRecords.slider.level1.push([0,0]);
+                                    savedRecords.slider.level2.push([0,0]);
+                                    savedRecords.slider.level3.push([0,0]);
+                                    savedRecords.slider.level4.push([0,0]);
+                                    savedRecords.slider.level5.push([0,0]);                                    
+                                    console.log('new img saved');
+                                localStorage.setItem('photoShuffleRecords',JSON.stringify(savedRecords));
+                            }else{console.log('img already exists');}
+                    }else{ console.log('no records..creating records...'); // if image objects are not there create them 
+                        var records = {
+                                    pic : [String(existingImg)],
+                                    slider : {
+                                             level1 : [[0,0]], //first nested item in array is minutes, second item is seconds
+                                             level2 : [[0,0]],
+                                             level3 : [[0,0]],
+                                             level4 : [[0,0]],
+                                             level5 : [[0,0]]
+                                             },
+                                   regular : {
+                                             level1 : [[0,0]], //first nested item in array is minutes, second item is seconds
+                                             level2 : [[0,0]],
+                                             level3 : [[0,0]],
+                                             level4 : [[0,0]],
+                                             level5 : [[0,0]]
+                                             }
+                                     };  
+                            localStorage.setItem('photoShuffleRecords',JSON.stringify(records));
+//                            console.log('objects created');
+                        };
+                        goTo(this.id);//go to the puzzle
+                    });
+        };
+        img.src = existingImg; 
+    }else{             
+        $('.puzzleOption').on('touchstart',function(){ 
+                message('Please choose an image first...');
+                });
+    };
+    $('#choose').on('touchstart', function(){ getImg(); });
+    $('#take').on('touchstart', function(){ takeImg(); });
+</script>
+</html>
